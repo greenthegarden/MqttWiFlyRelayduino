@@ -13,3 +13,13 @@ TimeAlarms from https://www.pjrc.com/teensy/td_libs_TimeAlarms.html
 
 MemoryFree from http://playground.arduino.cc/code/AvailableMemory
 
+I use the Relayduino as an irrigation controller which control master valve and four valves. The system operators automatically via alarms (based on TimeAlarms). In addition, the relays can controlled via the following MQTT topics:
+
+all/control/dst: if 
+                                          time_request,     // idx = 1
+                                          state_request,    // idx = 2
+                                          duration_request, // idx = 3
+                                          timer_stop,       // idx = 4
+                                          alarms_control,   // idx = 5
+                                          relay_control,    // idx = 6
+                                          duration_control
