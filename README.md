@@ -12,4 +12,4 @@ The following libraries are required which are not included with the Arduino IDE
 * TimeAlarms from https://www.pjrc.com/teensy/td_libs_TimeAlarms.html
 * MemoryFree from http://playground.arduino.cc/code/AvailableMemory
 
-The Mosquitto Broker is run on a Raspberry Pi and the Python code implemented using a the [Paho Python Client] (https://www.eclipse.org/paho/clients/python/)
+The [Mosquitto MQTT Broker] (http://mosquitto.org/) is run on a Raspberry Pi and the Python code implemented using a the [Paho Python Client] (https://www.eclipse.org/paho/clients/python/).
