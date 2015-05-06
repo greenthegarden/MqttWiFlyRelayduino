@@ -49,7 +49,7 @@ mqttc.on_disconnect = on_disconnect
 #mqttc.on_log       = on_log
 
 # Parse CLOUDMQTT_URL (or fallback to localhost)
-url_str = os.environ.get('CLOUDMQTT_URL', 'mqtt://localhost:1883')
+url_str = os.environ.get('CLOUDMQTT_URL', 'mqtt://192.168.1.55:1883')
 url = urlparse.urlparse(url_str)
 
 # Connect
@@ -95,7 +95,7 @@ while True :
 
 			elif command_type is 'c' :
 
-         		relay, duration = raw_input("Enter relay and duration: ").split()
+				relay, duration = raw_input("Enter relay and duration: ").split()
 
 				message = relay + ":" + duration
 

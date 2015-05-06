@@ -601,7 +601,7 @@ void callback(char* topic, uint8_t* payload, unsigned int payload_length)
   free(message);
 }
 
-void connect_wifly()
+void wifly_connect()
 {
 #if USE_WATCHDOG
   wdt_disable();
@@ -637,10 +637,10 @@ void connect_wifly()
 #endif
 }
 
-void connect_mqtt()
+void mqtt_connect()
 {
   if (!wifly_connected)
-    connect_wifly();
+    wifly_connect();
 
   if (wifly_connected)
   {
@@ -676,10 +676,20 @@ void connect_mqtt()
   }
 }
 
+void reset_connection()
+{
+  if (mqttClient.connected())
+  {
+    mqttClient.disconnect();
+  }
+  wifly_connect();
+  mqtt_connect();
+}
+
 void set_time()
 {
   if (!wifly_connected)
-    connect_wifly();
+    wifly_connect();
 
   if (wifly_connected)
   {
@@ -748,6 +758,9 @@ void setup()
 
   // Define hourly 'I am here' alarm
   Alarm.timerRepeat(60*60, publishConnected);
+  
+  // reset connection to client every three hours
+  Alarm.timerRepeat(3*60*60, reset_connection);
 
   // Define default irrigation alarms
   // start times are fixed and days are fixed
@@ -801,7 +814,8 @@ void loop()
 
   if (!mqttClient.loop())
   {
-    connect_mqtt();
+    wifly_connect();
+//    mqtt_connect();
   }
 
 #if USE_WATCHDOG  

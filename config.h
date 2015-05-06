@@ -2,7 +2,7 @@
 #define __CONFIG_H__
 
 
-#define DEBUG                       false
+#define DEBUG                       true
 #define DEBUG2                      false
 #define USE_WATCHDOG                false
 #define USE_FREEMEM                 false
@@ -22,15 +22,14 @@ const int BAUD_RATE               = 9600;
 const byte ledPin                 = 13;
 #endif
 
+
 // wiFly Serial pins
 const byte wiflySerialRx          = 11;
 const byte wiflySerialTx          = 12;
 
 
-// Wifi parameters
-const char ssid[]               = “xxx”;
-const char passphrase[]         = “xxx”;
-boolean mode                      = true;
+// Network configuration
+#include "networkConfig.h"
 
 
 // WiFly parameters
