@@ -52,47 +52,23 @@ reboot
 // http://forum.arduino.cc/index.php?topic=63651.0
 #include <avr/wdt.h>
 
-void watchdogSetup(void)
+// Source https://tushev.org/articles/arduino/item/46-arduino-and-watchdog-timer
+/*
+ Threshold value	Constant name	Supported on
+ 15 ms	        WDTO_15MS	ATMega 8, 168, 328, 1280, 2560
+ 30 ms	        WDTO_30MS	ATMega 8, 168, 328, 1280, 2560
+ 60 ms	        WDTO_60MS	ATMega 8, 168, 328, 1280, 2560
+ 120 ms	        WDTO_120MS	ATMega 8, 168, 328, 1280, 2560
+ 250 ms	        WDTO_250MS	ATMega 8, 168, 328, 1280, 2560
+ 500 ms	        WDTO_500MS	ATMega 8, 168, 328, 1280, 2560
+ 1 s	        WDTO_1S	        ATMega 8, 168, 328, 1280, 2560
+ 2 s	        WDTO_2S	        ATMega 8, 168, 328, 1280, 2560
+ 4 s	        WDTO_4S	        ATMega 168, 328, 1280, 2560
+ 8 s	        WDTO_8S	        ATMega 168, 328, 1280, 2560
+*/
+void watchdog_setup(void)
 {
-#if 0
-  noInterrupts();  // disable interupts to ensure configuration is fully processed
-  wdt_reset();
-
-  /*
-   WDTCSR configuration:
-   WDIE = 1: Interrupt Enable
-   WDE = 1 : Reset Enable
-   See table for time-out variations:
-   WDP3 = 0 : For 2000ms Time-out
-   WDP2 = 1 : For 2000ms Time-out
-   WDP1 = 1 : For 2000ms Time-out
-   WDP0 = 1 : For 2000ms Time-out
-  */
-  // Enter Watchdog Configuration mode:
-  WDTCSR |= (1<<WDCE) | (1<<WDE);
-  
-  // Set Watchdog settings:
-  WDTCSR = (1<<WDIE) | (1<<WDE) | (0<<WDP3) | (1<<WDP2) | (1<<WDP1) | (1<<WDP0);
-
-  interrupts();  // re-enable interrupts
-#else
-  // alternative method
-  // see https://tushev.org/articles/arduino/item/46-arduino-and-watchdog-timer
-  /*
-   Threshold value	Constant name	Supported on
-   15 ms	        WDTO_15MS	ATMega 8, 168, 328, 1280, 2560
-   30 ms	        WDTO_30MS	ATMega 8, 168, 328, 1280, 2560
-   60 ms	        WDTO_60MS	ATMega 8, 168, 328, 1280, 2560
-   120 ms	        WDTO_120MS	ATMega 8, 168, 328, 1280, 2560
-   250 ms	        WDTO_250MS	ATMega 8, 168, 328, 1280, 2560
-   500 ms	        WDTO_500MS	ATMega 8, 168, 328, 1280, 2560
-   1 s	                WDTO_1S	        ATMega 8, 168, 328, 1280, 2560
-   2 s	                WDTO_2S	        ATMega 8, 168, 328, 1280, 2560
-   4 s	                WDTO_4S	        ATMega 168, 328, 1280, 2560
-   8 s	                WDTO_8S	        ATMega 168, 328, 1280, 2560
-  */
   wdt_enable(WDT_TIME);
-#endif
 }
 #endif
 
@@ -109,7 +85,7 @@ void debug(const __FlashStringHelper * console_text)
 // 0000000000111111111
 // 0123456789012345678
 // HH:MM:SS DD-MM-YYYY
-void dateString()
+void date_string()
 {
   char_buffer[0] = '\0';
   sprintf(char_buffer,
@@ -121,158 +97,129 @@ void dateString()
           month(),
           year()
           );
-   if (DST)
+   if (daylight_summer_time)
      strcat(char_buffer, " DST");
 }
 
-// write ip address to char_buffer in format
-// 0000000000111111111
-// 0123456789012345678
-// xxx.xxx.xxx.xxx
-//void ipString()
-//{
-//  char_buffer[0] = '\0';
-//  strcat(char_buffer, WiFly.ip());
-//}
-
-
 #include <TimeAlarms.h>
-//const unsigned int TIMER_INTERVAL_MINS = 5;  // measurement interval in minutes
-byte currentTimerRef = 255;
-
+byte current_timer_ref = 255;
 
 // callback function definition required here as client needs to be defined before
 // including relay.h
 void callback(char* topic, uint8_t* payload, unsigned int length);
 
+WiFlyClient    wifly_client;
+SoftwareSerial wifly_serial(WIFLY_SERIAL_RX, WIFLY_SERIAL_TX);
+PubSubClient   mqtt_client(mqtt_server_addr, MQTT_PORT, callback, wifly_client);
 
-WiFlyClient wiflyClient;
-SoftwareSerial wiflySerial(wiflySerialRx, wiflySerialTx);
-PubSubClient mqttClient(mqtt_server_addr, mqtt_port, callback, wiflyClient);
-
-void publishConnected()
+void publish_connected()
 {
   prog_buffer[0] = '\0';
-  strcpy_P(prog_buffer, (char*)pgm_read_word(&(status_topics[0])));
-  mqttClient.publish(prog_buffer, "Connected");
+  strcpy_P(prog_buffer, (char*)pgm_read_word(&(STATUS_TOPICS[0])));
+  mqtt_client.publish(prog_buffer, "connected");
 }
 
-//void publishIp()
-//{
-//   mqttClient.publish(wifly_topic, "Local IP:");
-//   ipToBuf();
-//   mqttClient.publish(wifly_topic, char_buffer);
-//}
-
-void publishDate()
+void publish_date()
 {
   prog_buffer[0] = '\0';
-  strcpy_P(prog_buffer, (char*)pgm_read_word(&(status_topics[1])));
-  dateString();  // date is stored in char_buffer
-  mqttClient.publish(prog_buffer, char_buffer);
+  strcpy_P(prog_buffer, (char*)pgm_read_word(&(STATUS_TOPICS[1])));
+  date_string();  // date is stored in char_buffer
+  mqtt_client.publish(prog_buffer, char_buffer);
 }
 
-void publishAlarmId(byte ref = 255)
+void publish_alarm_id(byte ref = 255)
 {
-  if ( ref == 255 )
-  {
+  if ( ref == 255 ) {
     ref = Alarm.getTriggeredAlarmId();
   }
   prog_buffer[0] = '\0';
-  strcpy_P(prog_buffer, (char*)pgm_read_word(&(status_topics[5])));
+  strcpy_P(prog_buffer, (char*)pgm_read_word(&(STATUS_TOPICS[5])));
   char str[4];
-  mqttClient.publish(prog_buffer, itoa(ref, str, 10));
+  mqtt_client.publish(prog_buffer, itoa(ref, str, 10));
 }
 
-void publishAlarms(bool enabled)
+void publish_alarms(bool enabled)
 {
   prog_buffer[0] = '\0';
-  strcpy_P(prog_buffer, (char*)pgm_read_word(&(status_topics[6])));
+  strcpy_P(prog_buffer, (char*)pgm_read_word(&(STATUS_TOPICS[6])));
   if ( enabled )
-    mqttClient.publish(prog_buffer, "enabled");
+    mqtt_client.publish(prog_buffer, "enabled");
   else
-    mqttClient.publish(prog_buffer, "disabled");
+    mqtt_client.publish(prog_buffer, "disabled");
 }
 
 #if USE_FREEMEM
-void publishMemory()
+void publish_memory()
 {
   prog_buffer[0] = '\0';
-  strcpy_P(prog_buffer, (char*)pgm_read_word(&(status_topics[2])));
+  strcpy_P(prog_buffer, (char*)pgm_read_word(&(STATUS_TOPICS[2])));
   char_buffer[0] = '\0';
   itoa(freeMemory(), char_buffer, 10);
-  mqttClient.publish(prog_buffer, char_buffer);
+  mqtt_client.publish(prog_buffer, char_buffer);
 }
 #endif
 
-void disableAlarms()
+void disable_alarms()
 {
-  for ( byte idx=0; idx<sizeof(alarm_refs); idx++ )
-  {
+  for ( byte idx=0; idx<sizeof(alarm_refs); idx++ ) {
     Alarm.disable(alarm_refs[idx]);
   }
-  publishAlarms(false);
+  publish_alarms(false);
 }
 
-void enableAlarms()
+void enable_alarms()
 {
-  for ( byte idx=0; idx<alarm_refs_cnt; idx++ )
-  {
+  for ( byte idx=0; idx<alarm_refs_cnt; idx++ ) {
     Alarm.enable(alarm_refs[idx]);
   }
-  publishAlarms(true);
+  publish_alarms(true);
 }
-
 
 #include "relayduinoConfig.h"
 
-const byte relayPinsUsed[]  = {RELAY_1, RELAY_2, RELAY_3, RELAY_4};
-int        relayDurations[] = {R1_DURATION, R2_DURATION, R3_DURATION, R4_DURATION};
+const byte RELAY_PINS_USED[] = {RELAY_1, RELAY_2, RELAY_3, RELAY_4};
+int        relay_durations[] = {relay_1_duration, relay_2_duration, relay_3_duration, relay_4_duration};
 
-void getRelayDurations()
+void get_relay_durations()
 {
-  //sizeof(myInts)/sizeof(int)
-  for ( byte idx=0; idx<sizeof(relayDurations)/sizeof(int); idx++ )
-  {
+  for ( byte idx=0; idx<sizeof(relay_durations)/sizeof(int); idx++ ) {
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[7])));
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[7])));
     char str[4];
-    mqttClient.publish(prog_buffer, itoa(relayDurations[idx], str, 10));
+    mqtt_client.publish(prog_buffer, itoa(relay_durations[idx], str, 10));
   }
 }
 
 #if USE_MASTER_RELAY
 // returns 1 if relay is currently on and switched off, else returns 0
-byte masterRelayOff()
+byte master_relay_off()
 {
   // only switch relay off if it is currently on
-  if (digitalRead(RELAY_MASTER))
-  {
+  if (digitalRead(RELAY_MASTER)) {
     digitalWrite(RELAY_MASTER, LOW);
 #if DEBUG
     debug(F("master off"));
 #endif
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[4])));
-    mqttClient.publish(prog_buffer, "M");
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[4])));
+    mqtt_client.publish(prog_buffer, "M");
     return 1;
   }
   return 0;
 }
 
 // returns 1 if relay is currently on and switched off, else returns 0
-byte masterRelayOn()
+byte master_relay_on()
 {
   // only switch relay on if it is currently off
-  if(!digitalRead(RELAY_MASTER))
-  {
+  if(!digitalRead(RELAY_MASTER)) {
     digitalWrite(RELAY_MASTER, HIGH);
 #if DEBUG
     debug(F("master on"));
 #endif
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[3])));
-    mqttClient.publish(prog_buffer, "M");
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[3])));
+    mqtt_client.publish(prog_buffer, "M");
     return 1;
   }
   return 0;
@@ -280,57 +227,53 @@ byte masterRelayOn()
 #endif
 
 // returns 1 if relay connected to given pin is on, else returns 0
-byte relayState(byte idx)
+byte relay_state(byte idx)
 {
-  return(digitalRead(relayPinsUsed[idx]));
+  return(digitalRead(RELAY_PINS_USED[idx]));
 }
 
-void relaysState()
+void relays_state()
 {
-  for ( byte idx=0; idx<sizeof(relayPinsUsed); idx++ )
-  {
-    if ( digitalRead(relayPinsUsed[idx]) )
-    {
+  for ( byte idx=0; idx<sizeof(RELAY_PINS_USED); idx++ ) {
+    if ( digitalRead(RELAY_PINS_USED[idx]) ) {
 #if DEBUG
       debug(F("relay on"));
 #endif
       prog_buffer[0] = '\0';
-      strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[3])));
+      strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[3])));
       char str[2];
-      mqttClient.publish(prog_buffer, itoa(idx+1, str, 10));
+      mqtt_client.publish(prog_buffer, itoa(idx+1, str, 10));
     }
-    else
-    {
+    else {
 #if DEBUG
       debug(F("relay off"));
 #endif
       prog_buffer[0] = '\0';
-      strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[4])));
+      strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[4])));
       char str[2];
-      mqttClient.publish(prog_buffer, itoa(idx+1, str, 10));
+      mqtt_client.publish(prog_buffer, itoa(idx+1, str, 10));
     }
   }
 }
 
 // returns 1 if relay is currently on and switched off, else returns 0
-byte relaySwitchOff(byte idx)
+byte relay_switch_off(byte idx)
 {
   // only switch relay off if it is currently on
-  if (relayState(idx))
-  {
-    digitalWrite(relayPinsUsed[idx], LOW);
+  if (relay_state(idx)) {
+    digitalWrite(RELAY_PINS_USED[idx], LOW);
 #if DEBUG
     debug(F("relay off"));
 #endif
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[4])));
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[4])));
     char str[2];
-    mqttClient.publish(prog_buffer, itoa(idx+1, str, 10));
+    mqtt_client.publish(prog_buffer, itoa(idx+1, str, 10));
 #if USE_MASTER_RELAY
-    masterRelayOff();
+    master_relay_off();
 #endif
 #if USE_LED
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
 #endif
     return 1;
   }
@@ -339,40 +282,37 @@ byte relaySwitchOff(byte idx)
 
 // used by callback as a void function to switch off relay which is currenlty on
 // and then switches off master
-void relaysSwitchOff()
+void relays_switch_off()
 {
-  for ( byte idx=0; idx<sizeof(relayPinsUsed); idx++ )
-  {
-    if (relayState(idx))
-    {
-      relaySwitchOff(idx);
+  for ( byte idx=0; idx<sizeof(RELAY_PINS_USED); idx++ ) {
+    if (relay_state(idx)) {
+      relay_switch_off(idx);
     }
   }
 }
 
-byte timerStop()
+byte timer_stop()
 {
-  return (Alarm.timerOnce(1, relaysSwitchOff));
+  return (Alarm.timerOnce(1, relays_switch_off));
 }
 
 // returns 1 if relay is currently off and switched on, else returns 0
-byte relaySwitchOn(byte idx)
+byte relay_switch_on(byte idx)
 {
-  if(!relayState(idx))
-  {
-  digitalWrite(relayPinsUsed[idx], HIGH);
+  if (!relay_state(idx)) {
+    digitalWrite(RELAY_PINS_USED[idx], HIGH);
 #if DEBUG
     debug(F("relay on"));
 #endif
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(status_topics[3])));
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(STATUS_TOPICS[3])));
     char str[2];
-    mqttClient.publish(prog_buffer, itoa(idx+1, str, 10));
+    mqtt_client.publish(prog_buffer, itoa(idx+1, str, 10));
 #if USE_MASTER_RELAY
-    masterRelayOn();
+    master_relay_on();
 #endif
 #if USE_LED
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
 #endif
     return 1;
   }
@@ -389,50 +329,39 @@ byte relaySwitchOn(byte idx)
 //  return 0;
 //}
 
-byte relaySwitchOnWithTimer(byte idx, int duration)
+byte relay_switch_on_with_timer(byte idx, int duration)
 {
-  if (relaySwitchOn(idx))
-  {
-    currentTimerRef = Alarm.timerOnce(duration * SECS_PER_MIN, relaysSwitchOff);
-    publishAlarmId(currentTimerRef);
+  if (relay_switch_on(idx)) {
+    current_timer_ref = Alarm.timerOnce(duration * SECS_PER_MIN, relays_switch_off);
+    publish_alarm_id(current_timer_ref);
     return 1;
   }
   return 0;
 }
 
-//byte relayAndMasterSwitchOnWithTimer(byte idx, int duration)
-//{
-//  if (relayAndMasterSwitchOn(idx))
-//    return ( Alarm.timerOnce(duration * SECS_PER_MIN, relaysSwitchOff) );
-//}
-
 // define void functions for each irrigation zone required as alarm callbacks
-void turnOnRelay1()
+void turn_on_relay_1()
 {
   byte idx = 0;
-  relaySwitchOnWithTimer(idx, relayDurations[idx]);
-//  relayAndMasterSwitchOnWithTimer(tr1.pin, tr1.duration);
+  relay_switch_on_with_timer(idx, relay_durations[idx]);
 }
 
-void turnOnRelay2()
+void turn_on_relay_2()
 {
   byte idx = 1;
-  relaySwitchOnWithTimer(idx, relayDurations[idx]);
-//  relayAndMasterSwitchOnWithTimer(tr2.pin, tr2.duration);
+  relay_switch_on_with_timer(idx, relay_durations[idx]);
 }
 
-void turnOnRelay3()
+void turn_on_relay_3()
 {
   byte idx = 2;
-  relaySwitchOnWithTimer(idx, relayDurations[idx]);
-//  relayAndMasterSwitchOnWithTimer(tr3.pin, tr3.duration);
+  relay_switch_on_with_timer(idx, relay_durations[idx]);
 }
 
-void turnOnRelay4()
+void turn_on_relay_4()
 {
   byte idx = 3;
-  relaySwitchOnWithTimer(idx, relayDurations[idx]);
-//  relayAndMasterSwitchOnWithTimer(tr4.pin, tr4.duration);
+  relay_switch_on_with_timer(idx, relay_durations[idx]);
 }
 
 void callback(char* topic, uint8_t* payload, unsigned int payload_length)
@@ -468,12 +397,10 @@ void callback(char* topic, uint8_t* payload, unsigned int payload_length)
 
   byte topic_idx = 0;
   // find if topic is matched
-  for ( byte i = 0; i < sizeof(control_topics); i++ )
-  {
+  for ( byte i = 0; i < sizeof(CONTROL_TOPICS); i++ ) {
     prog_buffer[0] = '\0';
-    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(control_topics[i])));
-    if (strcmp(topic, prog_buffer) == 0)
-    {
+    strcpy_P(prog_buffer, (PGM_P)pgm_read_word(&(CONTROL_TOPICS[i])));
+    if (strcmp(topic, prog_buffer) == 0) {
       topic_idx = i;
       break;
     }
@@ -483,121 +410,105 @@ void callback(char* topic, uint8_t* payload, unsigned int payload_length)
   Serial.println(topic_idx);
 #endif
 
-//  if (strcmp(topic, prog_buffer) == 0)
 // topic is dst_set
-  if (topic_idx == 0)
-  {
-    byte rMsg = atoi(message); // parse to int (will return 0 if not a valid int)
-    if ( rMsg == 1 && !DST)
-    {
+  if (topic_idx == 0) {
+    byte integer = atoi(message); // parse to int (will return 0 if not a valid int)
+    if ( integer == 1 && !daylight_summer_time) {
       adjustTime(SECS_PER_HOUR); 
-      DST = true;
+      daylight_summer_time = true;
     }  // move forward one hour
-    else if ( rMsg == 0 && DST)
-    { 
+    else if ( integer == 0 && daylight_summer_time) { 
       adjustTime(-SECS_PER_HOUR);
-      DST = false;
+      daylight_summer_time = false;
     }  // move back one hour
-    publishDate();
+    publish_date();
 #if DEBUG
     debug(F("dst set topic arrived"));
-    dateString();
+    date_string();
     Serial.println(char_buffer);
 #endif
   }
-// topic is time_request
-  else if (topic_idx == 1)
-  {
-    publishDate();
+  else if (topic_idx == 1) {
+    // topic is time_request
+    publish_date();
 #if DEBUG
     debug(F("time request topic arrived"));
-    dateString();
+    date_string();
     Serial.println(char_buffer);
 #endif
   }
-// topic is state_request
-  else if (topic_idx == 2)
-  {
-    relaysState();
+  else if (topic_idx == 2) {
+    // topic is state_request
+    relays_state();
   }
-  else if (topic_idx == 3)
-  // topic is duration_request
-  {
-    getRelayDurations();
+  else if (topic_idx == 3) {
+    // topic is duration_request
+    get_relay_durations();
   }
-  else if (topic_idx == 4)
-  // topic is timer_stop
-  {
-    timerStop();
+  else if (topic_idx == 4) {
+    // topic is timer_stop
+    timer_stop();
   }
-  else if (topic_idx == 5)
-  // topic is alarms_control
-  {
+  else if (topic_idx == 5) {
+    // topic is alarms_control
     // enable or disable alarms
-    int rMsg = atoi(message);             //parse to int will return 0 if fails
-    if ( rMsg == 0 ) { 
-      disableAlarms();
+    int integer = atoi(message);             //parse to int will return 0 if fails
+    if ( integer == 0 ) { 
+      disable_alarms();
     }
     else { 
-      enableAlarms();
+      enable_alarms();
     }   
   }
-  else if (topic_idx == 6)
-  // topic is relay_control
-  {
+  else if (topic_idx == 6) {
+    // topic is relay_control
     // message should be of format relay,duration
     char *separated_message = strchr(message, COMMAND_SEPARATOR);
     // separated_message is of format ",duration"
-    if (separated_message != 0)
-    {
+    if (separated_message != 0) {
       byte relay_ref = atoi(message)-1;
       ++separated_message;
       int duration = atoi(separated_message);
     
-      if ( duration == 0 )
-      {
+      if ( duration == 0 ) {
         if ( relay_ref == 0 )
-          turnOnRelay1();
+          turn_on_relay_1();
         else if ( relay_ref == 1 )
-          turnOnRelay2();
+          turn_on_relay_2();
         else if ( relay_ref == 2 )
-          turnOnRelay3();
+          turn_on_relay_3();
         else if ( relay_ref == 3 )
-          turnOnRelay4();
+          turn_on_relay_4();
       }
       else { 
-        relaySwitchOnWithTimer(relay_ref, duration);
+        relay_switch_on_with_timer(relay_ref, duration);
       }
     }  
   }
-  else if (topic_idx == 7)
-  // topic is duration_control
-  {
+  else if (topic_idx == 7) {
+    // topic is duration_control
     // message should be of format relay,duration
     char *separated_message = strchr(message, COMMAND_SEPARATOR);
     // separated_message is of format ",duration"
-    if (separated_message != 0)
-    {
+    if (separated_message != 0) {
       byte relay_ref = atoi(message)-1;
       ++separated_message;
       int duration = atoi(separated_message);
     
-      if ( duration > 0 )
-      {
-        relayDurations[relay_ref] = duration;
+      if ( duration > 0 ) {
+        relay_durations[relay_ref] = duration;
       }
-      getRelayDurations();
+      get_relay_durations();
     }
   }
-  else
-  // unknown topic has arrived - ignore!!
-  {
+  else {
+    // unknown topic has arrived - ignore!!
 #if DEBUG
     debug(F("Unknown topic arrived"));
 #endif
   }
 
-  // ensure memory assigned to message is freed
+  // free memory assigned to message
   free(message);
 }
 
@@ -608,20 +519,20 @@ void wifly_connect()
 #endif
 
 #if DEBUG
-  debug(F("Initialising"));
+  debug(F("initialising wifly"));
 #endif
 
-  WiFly.begin();
+//  WiFly.begin();
 
 #if DEBUG
-  debug(F("Joining"));
+  debug(F("joining network"));
 #endif
 
-  if (!WiFly.join(ssid, passphrase, mode))
+  if (!WiFly.join(MY_SSID, MY_PASSPHRASE, mode))
   {
     wifly_connected = false;
 #if DEBUG
-    debug(F("Failed"));
+    debug(F("failed"));
 #endif
     delay(AFTER_ERROR_DELAY);
   } 
@@ -631,9 +542,9 @@ void wifly_connect()
 
 #if USE_WATCHDOG
 #if DEBUG 
-  debug(F("Setting watchdog"));
+  debug(F("setting watchdog"));
 #endif
-  watchdogSetup();
+  watchdog_setup();
 #endif
 }
 
@@ -642,29 +553,26 @@ void mqtt_connect()
   if (!wifly_connected)
     wifly_connect();
 
-  if (wifly_connected)
-  {
+  if (wifly_connected) {
     // MQTT client setup
     //    mqttClient.disconnect();
 #if DEBUG
-    debug(F("Connecting"));
+    debug(F("connecting to broker"));
 #endif
-    if (mqttClient.connect(mqtt_client_id))
-    {
+    if (mqtt_client.connect(mqtt_client_id)) {
 #if DEBUG
-      debug(F("Connected"));
+      debug(F("connected"));
 #endif
-      publishConnected();
-//      publishIp();
-      publishDate();
+      publish_connected();
+      publish_date();
 #if USE_FREEMEM
-      publishMemory();
+      publish_memory();
 #endif
 
       // subscribe to topics 
-      mqttClient.subscribe("all/#");
-      mqttClient.subscribe("relayduino/control/#");
-      mqttClient.subscribe("relayduino/request/#");
+      mqtt_client.subscribe("all/#");
+      mqtt_client.subscribe("relayduino/control/#");
+      mqtt_client.subscribe("relayduino/request/#");
     } 
     else
     {
@@ -678,15 +586,15 @@ void mqtt_connect()
 
 void reset_connection()
 {
-  if (mqttClient.connected())
+  if (mqtt_client.connected())
   {
-    mqttClient.disconnect();
+    mqtt_client.disconnect();
   }
   wifly_connect();
   mqtt_connect();
 }
 
-void set_time()
+void time_set()
 {
   if (!wifly_connected)
     wifly_connect();
@@ -720,44 +628,48 @@ void setup()
   pinMode(RELAY_MASTER, OUTPUT);
   digitalWrite(RELAY_MASTER, LOW);
 #endif
-  for ( byte idx=0; idx<sizeof(relayPinsUsed); idx++ )
+  for ( byte idx=0; idx<sizeof(RELAY_PINS_USED); idx++ )
   {
-    pinMode(relayPinsUsed[idx], OUTPUT);
-    digitalWrite(relayPinsUsed[idx], LOW);
+    pinMode(RELAY_PINS_USED[idx], OUTPUT);
+    digitalWrite(RELAY_PINS_USED[idx], LOW);
   }
   
   // Configure WiFly
   Serial.begin(BAUD_RATE);
 
 #if USE_LED
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 #endif
   
 #if DEBUG
   debug(F("Setup"));
 #endif
 
-  wiflySerial.begin(BAUD_RATE);
-  WiFly.setUart(&wiflySerial);
+  wifly_serial.begin(BAUD_RATE);
+  WiFly.setUart(&wifly_serial);
+  
+  wifly_connect();
+  
+  delay(5000);  // allow time to WiFly to connect
 
   if (timeStatus() != timeSet)
-    set_time();
+    time_set();
 
 #if DEBUG
   Serial.println(WiFly.ip());
   //  Serial.println(WiFly.getMAC());
-  dateString();
+  date_string();
   Serial.println(char_buffer);
 #endif
 
 #if DEBUG
   Serial.print("Number of relays is ");
-  Serial.println(sizeof(relayPinsUsed));
+  Serial.println(sizeof(RELAY_PINS_USED));
 #endif
 
   // Define hourly 'I am here' alarm
-  Alarm.timerRepeat(60*60, publishConnected);
+  Alarm.timerRepeat(60*60, publish_connected);
   
   // reset connection to client every three hours
   Alarm.timerRepeat(3*60*60, reset_connection);
@@ -768,21 +680,21 @@ void setup()
 
   // Irrigation Zone 1: Front grass
   // Set to Sunday and Wednesday evenings @ 1800
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSunday,18,0,0,turnOnRelay1); alarm_refs_cnt++;
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowWednesday,18,0,0,turnOnRelay1); alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSunday,18,0,0,turn_on_relay_1); alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowWednesday,18,0,0,turn_on_relay_1); alarm_refs_cnt++;
     
   // Irrigation Zone 2: Flower beds
   // Set to Sunday and Wednesday evenings @ 1900
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSunday,19,0,0,turnOnRelay2); alarm_refs_cnt++;
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowWednesday,19,0,0,turnOnRelay2); alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSunday,19,0,0,turn_on_relay_2); alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowWednesday,19,0,0,turn_on_relay_2); alarm_refs_cnt++;
   
   // Irrigation Zone 3: Fruit trees
   // Set to Saturday morning @ 0730
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSaturday,7,30,0,turnOnRelay3); alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(dowSaturday,7,30,0,turn_on_relay_3); alarm_refs_cnt++;
 
   // Relay 4: Vegetable beds
   // Set to everyday @ 0700
-  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(7,0,0,turnOnRelay4); //alarm_refs_cnt++;
+  alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(7,0,0,turn_on_relay_4); //alarm_refs_cnt++;
   
 //  byte alarm_refs[] = { Alarm.alarmRepeat(dowSunday,18,0,0,turnOnRelay1),
 //                        Alarm.alarmRepeat(dowWednesday,18,0,0,turnOnRelay1),
@@ -790,7 +702,7 @@ void setup()
   
 #if USE_WATCHDOG
   // configure watchdog timer  
-  watchdogSetup();
+  watchdog_setup();
 #endif
 
 }
@@ -812,14 +724,14 @@ void loop()
   // require a client.loop in order to receive subscriptions
   //  mqttClient.loop();
 
-  if (!mqttClient.loop())
+  if (!mqtt_client.loop())
   {
-    wifly_connect();
-//    mqtt_connect();
+//    wifly_connect();
+    mqtt_connect();
   }
 
 #if USE_WATCHDOG  
-  watchdogSetup();
+  watchdog_setup();
 #endif
 
 #if USE_WATCHDOG
@@ -832,9 +744,9 @@ void loop()
 ISR(WDT_vect)
 {
 // Ensure all relays are off if reset will occur
-  for (byte idx=0; idx<sizeof(relayPinsUsed); idx++)
+  for (byte idx=0; idx<sizeof(RELAY_PINS_USED); idx++)
   {
-    digitalWrite(relayPinsUsed[idx], LOW);
+    digitalWrite(RELAY_PINS_USED[idx], LOW);
   }
 }
 #endif
