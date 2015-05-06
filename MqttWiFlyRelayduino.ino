@@ -1,41 +1,8 @@
-/* RN-XV WiFly Module - Wire Antenna
- MAC: 00:06:66:50:71:6f
- IP: 192.168.1.52
- 
- RN-XV WiFly Module – SMA
- MAC: 00:06:66:71:68:d5
- IP: 192.168.1.51
- */
-
-// Note itoa function details
-// char* itoa (	int val, char *buf, int radix)
-// where radix is the number base, ie. 10
-
-/* WiFly configuration
-reboot	
-$$$	
-factory RESET	
-	
-set wlan join 0    // Stop device connecting while we setup
-
-set ip dhcp 3
-set wlan ssid xxx
-set wlan phrase xxx
-set wlan join 1
-
-set time address 203.0.178.191
-set time zone 0
-set time enable 1
-
-save
-reboot
-*/
-
-
 // WiFly libraries
 #include <SPI.h>
 #include <WiFly.h>
 #include <SoftwareSerial.h>
+
 
 // RS-485 library
 //#include <ICSC.h>
@@ -87,8 +54,6 @@ byte current_timer_ref = 255;
 void callback(char* topic, uint8_t* payload, unsigned int length);
 
 
-WiFlyClient    wifly_client;
-SoftwareSerial wifly_serial(WIFLY_SERIAL_RX, WIFLY_SERIAL_TX);
 PubSubClient   mqtt_client(mqtt_server_addr, MQTT_PORT, callback, wifly_client);
 
 
