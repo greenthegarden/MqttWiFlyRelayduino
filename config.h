@@ -1,21 +1,18 @@
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef MQTTWIFLYRELAYDUINO_CONFIG_H_
+#define MQTTWIFLYRELAYDUINO_CONFIG_H_
 
 
 #define DEBUG                       true
-#define DEBUG2                      false
-#define USE_WATCHDOG                false
-#define USE_FREEMEM                 false
+#define USE_FREEMEM                 true
 #define USE_LED                     true
+
+
+// Macros
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 
 // Serial parameters
 const int BAUD_RATE               = 9600;
-
-
-#if USE_WATCHDOG
-//#define WDT_TIME                  WDTO_2S
-#define WDT_TIME                    WDTO_8S
-#endif
 
 
 #if USE_LED
@@ -72,6 +69,7 @@ char char_buffer[BUFFER_SIZE];
 char prog_buffer[BUFFER_SIZE];
 char message[BUFFER_SIZE];
 
+
 const char WIFLY_STATUS[]      PROGMEM = "relayduino/status/wifly";
 const char TIME_STATUS[]       PROGMEM = "relayduino/status/time";
 const char MEMORY_STATUS[]     PROGMEM = "relayduino/status/memory";
@@ -90,7 +88,8 @@ PGM_P const STATUS_TOPICS[]    PROGMEM = {WIFLY_STATUS,     // idx = 0
                                           ALARMS_STATUS,    // idx = 6
                                           DURATIONS_STATUS, // idx = 7
                                           };
-                                          
+
+
 const char DST_SET[]           PROGMEM = "all/control/dst";
 
 const char TIME_REQUEST[]      PROGMEM = "relayduino/request/time";
@@ -113,5 +112,5 @@ PGM_P const CONTROL_TOPICS[]   PROGMEM = {DST_SET,          // idx = 0
                                           };      
 
 
-#endif
+#endif  /* MQTTWIFLYRELAYDUINO_CONFIG_H_ */
 

@@ -1,3 +1,7 @@
+#ifndef MQTTWIFLYRELAYDUINO_RELAYDUINO_CONFIG_H_
+#define MQTTWIFLYRELAYDUINO_RELAYDUINO_CONFIG_H_
+
+
 // pin definitions for RelayDuino
 #define ANALOG_IN_1 A6  // Analog 1 is connected to Arduino Analog In 6
 #define ANALOG_IN_2 A7  // Analog 2 is connected to Arduino Analog In 7
@@ -25,3 +29,5 @@
 
 //int Optos[4] = { OPTO_INPUT_1, OPTO_INPUT_2, OPTO_INPUT_3, OPTO_INPUT_4 };
 
+
+#endif  /* MQTTWIFLYRELAYDUINO_RELAYDUINO_CONFIG_H_ */
