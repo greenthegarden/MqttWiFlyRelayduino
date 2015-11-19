@@ -531,6 +531,10 @@ void setup()
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 #endif
+
+#if USE_HARDWARE_WATCHDOG
+    ResetWatchdog1();
+#endif
   
   // Configure WiFly
   Serial.begin(BAUD_RATE);
@@ -540,9 +544,17 @@ void setup()
   
   wifly_connect();
   
+#if USE_HARDWARE_WATCHDOG
+    ResetWatchdog1();
+#endif
+  
   if (timeStatus() != timeSet)
     time_set();
 
+#if USE_HARDWARE_WATCHDOG
+    ResetWatchdog1();
+#endif
+  
 #if DEBUG
   Serial.println(WiFly.ip());
   //  Serial.println(WiFly.getMAC());
@@ -584,6 +596,10 @@ void setup()
   // Relay 4: Vegetable beds
   // Set to everyday @ 0700
   alarm_refs[alarm_refs_cnt] = Alarm.alarmRepeat(7, 0, 0, turn_on_relay_4); //alarm_refs_cnt++;  
+
+#if USE_HARDWARE_WATCHDOG
+    ResetWatchdog1();
+#endif
 }
 
 
