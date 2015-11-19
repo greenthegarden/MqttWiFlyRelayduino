@@ -20,6 +20,10 @@ const byte LED_PIN                = 13;
 #endif
 
 
+// Watchdog configuration
+#include "Watchdog_config.h"
+
+
 // Network configuration
 #include "networkConfig.h"
 

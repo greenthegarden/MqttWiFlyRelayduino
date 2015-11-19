@@ -437,7 +437,8 @@ void wifly_connect()
   debug(F("joining network"));
 #endif
 
-  if (!WiFly.join(MY_SSID, MY_PASSPHRASE, mode)) {
+//  if (!WiFly.join(MY_SSID, MY_PASSPHRASE, mode)) {
+  if (!WiFly.join(MY_SSID)) {   // needs to be fixed to allow a passphrase if secure
     wifly_connected = false;
 #if DEBUG
     debug(F("  failed"));
@@ -602,5 +603,16 @@ void loop()
 //    wifly_connect();
     mqtt_connect();
   }
+
+  #if USE_HARDWARE_WATCHDOG
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= watchdog_interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+    ResetWatchdog1();
+  }
+  #endif
 }
 
