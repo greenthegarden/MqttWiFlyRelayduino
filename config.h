@@ -2,7 +2,7 @@
 #define MQTTWIFLYRELAYDUINO_CONFIG_H_
 
 
-#define DEBUG                       true
+#define DEBUG                       false
 #define USE_FREEMEM                 true
 #define USE_LED                     true
 

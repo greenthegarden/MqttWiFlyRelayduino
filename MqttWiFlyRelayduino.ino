@@ -344,8 +344,7 @@ void callback(char* topic, uint8_t* payload, unsigned int payload_length)
   Serial.println(topic_idx);
 #endif
 
-// topic is dst_set
-  if (topic_idx == 0) {
+  if (topic_idx == 0) {  // topic is dst_set
     byte integer = atoi(message);    // parse to int (will return 0 if not a valid int)
     if (integer == 1 && !daylight_summer_time) {
       adjustTime(SECS_PER_HOUR);     // move time forward one hour

@@ -76,17 +76,17 @@ while True :
 			if command_type is 'w' :
 				mqttc.publish("relayduino/request/wifly");
 
-			if command_type is 'm' :
+			elif command_type is 'm' :
 				mqttc.publish("relayduino/request/memory");
 
-			if command_type is 'e' :
+			elif command_type is 'e' :
 
 				alarms_command = raw_input("Enter 0/1 to disable/enable alarms: ")
 
 				if alarms_command in alarms_command_valid_inputs :
 					mqttc.publish("relayduino/control/alarms", alarms_command)
 
-			if command_type is 't' :
+			elif command_type is 't' :
 
 				dst_command = raw_input("Enter 0 to set standard time or 1 for summer time: ");
 
